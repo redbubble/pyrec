@@ -71,7 +71,7 @@ class ImplicitRecommender:
         :return:
         """
         if index_type == 'annoy':
-            from redbubble.recommendation.implicit_annoy import ImplicitAnnoyRecommender
+            from .annoy import ImplicitAnnoyRecommender
             recommender = ImplicitAnnoyRecommender.build_annoy_recommender(
                 als_model=self.als_model,
                 user_labels=self.user_labels, item_labels=self.item_labels,
@@ -117,7 +117,7 @@ def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool 
         return ImplicitRecommender(model, user_labels, item_labels)
 
     elif index_file.endswith('.ann'):
-        from redbubble.recommendation.implicit_annoy import ImplicitAnnoyRecommender
+        from .annoy import ImplicitAnnoyRecommender
         import annoy
         log.info("Loading annoy recommendation index")
         max_norm, extra = augment_inner_product_matrix(model.item_factors)
