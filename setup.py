@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='redbubble',
+setup(name='pyrec',
       version='v0.1',
       description='Library to train and serve recommendation models in Python',
       url='https://github.com/redbubble/pyrec',
