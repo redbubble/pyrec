@@ -7,7 +7,7 @@ setup(name='pyrec',
       author='Redbubble',
       author_email='info@redbubble.com',
       license='MIT',
-      packages=['pyrec'],
+      packages=['pyrec', 'pyrec.implicit'],
       install_requires=[
           'numpy',
           'scipy',
