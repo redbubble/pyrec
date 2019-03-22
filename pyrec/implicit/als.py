@@ -1,7 +1,9 @@
 import logging
 
 import numpy as np
+from implicit.recommender_base import MatrixFactorizationBase
 from implicit.als import AlternatingLeastSquares
+from implicit.bpr import BayesianPersonalizedRanking
 from implicit.approximate_als import augment_inner_product_matrix
 from scipy import sparse
 
@@ -14,8 +16,8 @@ class RecommenderException(Exception):
 
 class ImplicitRecommender:
 
-    def __init__(self, als_model: AlternatingLeastSquares, user_labels: np.ndarray, item_labels: np.ndarray):
-        self.als_model = als_model
+    def __init__(self, model: MatrixFactorizationBase, user_labels: np.ndarray, item_labels: np.ndarray):
+        self.model = model
         self.user_labels = user_labels
         self.item_labels = item_labels
         self.user_labels_idx = {idx: label for label, idx in enumerate(user_labels)}
@@ -35,7 +37,7 @@ class ImplicitRecommender:
 
     def __recommend_internal__(self, user_label, user_items, N=10, filter_items=None, recalculate_user=True,
                                filter_already_liked_items=True):
-        return self.als_model.recommend(user_label, user_items=user_items, N=N, recalculate_user=True,
+        return self.model.recommend(user_label, user_items=user_items, N=N, recalculate_user=True,
                                         filter_already_liked_items=filter_already_liked_items)
 
     def recommend(self, item_ids, item_weights=None, number_of_results=50, filter_already_liked_items=True):
@@ -73,7 +75,7 @@ class ImplicitRecommender:
         if index_type == 'annoy':
             from .annoy import ImplicitAnnoyRecommender
             recommender = ImplicitAnnoyRecommender.build_annoy_recommender(
-                als_model=self.als_model,
+                model=self.model,
                 user_labels=self.user_labels, item_labels=self.item_labels,
                 approximate_similar_items=approximate_similar_items, approximate_recommend=approximate_recommend,
                 **kwargs
@@ -86,19 +88,19 @@ class ImplicitRecommender:
             raise RecommenderException("Unsupported optimization " + index_type)
 
     def save(self, base_name, user_factors=False, compress=False):
-        als_file = base_name + ".npz"
-        log.info("Saving ALS model to %s", als_file)
+        model_file = base_name + ".npz"
+        log.info("Saving implicit model to %s", model_file)
         data = {
-            'model.item_factors': self.als_model.item_factors,
+            'model.item_factors': self.model.item_factors,
             'user_labels': self.user_labels,
             'item_labels': self.item_labels,
         }
         if user_factors:
-            data.update({'model.user_factors': self.als_model.user_factors})
+            data.update({'model.user_factors': self.model.user_factors})
         if compress:
             np.savez_compressed(als_file, **data)
         else:
-            np.savez(als_file, **data)
+            np.savez(model_file, **data)
 
 
 def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool = True) -> ImplicitRecommender:
@@ -116,6 +118,36 @@ def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool 
     if index_file is None:
         return ImplicitRecommender(model, user_labels, item_labels)
 
+    elif index_file.endswith('.ann'):
+        from .annoy import ImplicitAnnoyRecommender
+        import annoy
+        log.info("Loading annoy recommendation index")
+        max_norm, extra = augment_inner_product_matrix(model.item_factors)
+        recommend_index = annoy.AnnoyIndex(extra.shape[1], 'angular')
+        recommend_index.load(index_file)  # prefault=load_to_memory does not seem to work
+
+        return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
+
+    else:
+        raise RecommenderException("Unsupported file type" + index_file)
+
+def load_bpr_recommender(brp_model_file: str, index_file: str, load_to_memory: bool = True) -> ImplicitRecommender:
+    log.info("Loading bpr model")
+    data = np.load(bpr_model_file)
+    model = BayesianPersonalisedRanking(factors=data['model.item_factors'].shape[1])
+    model.item_factors = data['model.item_factors']
+    model.YtY  # This will initialize the _YtY instance variable which is used directly in internal methods
+    if 'user_factors' in data:
+        model.user_factors = data['model.user_factors']
+
+    user_labels = data['user_labels']
+    item_labels = data['item_labels']
+
+    if index_file is None:
+        return ImplicitRecommender(model, user_labels, item_labels)
+
+    # Not compatible for bpr recommender. 
+    # TODO: create annoy implementation for bpr.
     elif index_file.endswith('.ann'):
         from .annoy import ImplicitAnnoyRecommender
         import annoy
