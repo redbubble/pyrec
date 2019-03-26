@@ -10,6 +10,7 @@ log = logging.getLogger("rb.recommendation")
 class RecommenderException(Exception):
     pass
 
+
 class BM25Transformer:
     def __init__(self, N=0, length_norm=None, k1=100, b=0.8):
         self.k1 = k1
@@ -26,13 +27,13 @@ class BM25Transformer:
         self.N = N
         idf = np.log(N) - np.log1p(np.bincount(X.col))
 
-         # calculate length_norm per document (artist)
+        # calculate length_norm per document (item)
         row_sums = np.ravel(X.sum(axis=1))
         average_length = row_sums.mean()
         length_norm = (1.0 - self.b) + self.b * row_sums / average_length
         self.length_norm = length_norm
 
-         # weight matrix rows by bm25
+        # weight matrix rows by bm25
         X.data = X.data * (self.k1 + 1.0) / (self.k1 * length_norm[X.row] + X.data) * idf[X.col]
         return X
 
@@ -40,9 +41,11 @@ class BM25Transformer:
         idf = np.log(self.N) - np.log1p(1)
         return user_items.data * (self.k1 + 1.0) / (self.k1 * self.length_norm[user_items.col] + user_items.data) * idf
 
+
 class ItemToItemRecommender:
 
-    def __init__(self, i2i_model: BM25Recommender, user_labels: np.ndarray, item_labels: np.ndarray, transformer: BM25Transformer=None):
+    def __init__(self, i2i_model: BM25Recommender, user_labels: np.ndarray, item_labels: np.ndarray,
+                 transformer: BM25Transformer = None):
         self.i2i_model = i2i_model
         self.transformer = transformer
         self.user_labels = user_labels
@@ -102,7 +105,7 @@ class ItemToItemRecommender:
             'item_labels': self.item_labels,
         }
         if self.transformer is not None:
-            data['model.bm25.item_length_norm']=self.transformer.length_norm
+            data['model.bm25.item_length_norm'] = self.transformer.length_norm
         if compress:
             np.savez_compressed(als_file, **data)
         else:
@@ -112,12 +115,13 @@ class ItemToItemRecommender:
 def load_recommender(item_to_item_model_file: str) -> ItemToItemRecommender:
     log.info("Loading item to item bm25 model")
     data = np.load(item_to_item_model_file)
-    k=data['model.K']
-    k1=data['model.bm25.K1']
-    b=data['model.bm25.B']
+    k = data['model.K']
+    k1 = data['model.bm25.K1']
+    b = data['model.bm25.B']
     model = BM25Recommender(K=k, K1=k1, B=b)
     model.similarity = data['model.similarity']
     user_labels = data['user_labels']
     item_labels = data['item_labels']
-    bm25_transformer = BM25Transformer(N=item_labels.shape[0], length_norm= data['model.bm25.item_length_norm'], k1=k1, b=b)
+    bm25_transformer = BM25Transformer(N=item_labels.shape[0], length_norm=data['model.bm25.item_length_norm'], k1=k1,
+                                       b=b)
     return ItemToItemRecommender(model, user_labels, item_labels, bm25_transformer)
