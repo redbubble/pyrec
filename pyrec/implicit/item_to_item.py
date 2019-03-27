@@ -58,8 +58,8 @@ class ItemToItemRecommender:
         return recommendations
 
     def save(self, base_name, compress=False):
-        als_file = base_name + ".npz"
-        log.info("Saving item to item bm25 model to %s", als_file)
+        i2i_file = base_name + ".npz"
+        log.info("Saving item to item bm25 model to %s", i2i_file)
         data = {
             'model.K': np.array([self.i2i_model.K]),
             'model.bm25.K1': np.array([self.i2i_model.K1]),
@@ -72,9 +72,9 @@ class ItemToItemRecommender:
             'item_labels': self.item_labels,
         }
         if compress:
-            np.savez_compressed(als_file, **data)
+            np.savez_compressed(i2i_file, **data)
         else:
-            np.savez(als_file, **data)
+            np.savez(i2i_file, **data)
 
 
 def load_recommender(item_to_item_model_file: str) -> ItemToItemRecommender:
