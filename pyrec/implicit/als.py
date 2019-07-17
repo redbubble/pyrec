@@ -133,7 +133,7 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
             from .annoy import ImplicitAnnoyRecommender
             return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
         else:
-            log.info("Loading item features for annoy recommendation index")
+            log.info("Loading item features for recommendation")
             item_feature_data = pickle.load(open(item_feature_file, "rb"))
             tag_tfidf_transformer = item_feature_data['tag_tfidf_transformer']
             tag_lookup = item_feature_data['tag_lookup']
