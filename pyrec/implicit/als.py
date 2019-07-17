@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+import pickle
 from implicit.als import AlternatingLeastSquares
 from implicit.approximate_als import augment_inner_product_matrix
 from scipy import sparse
@@ -105,7 +106,7 @@ class ImplicitRecommender:
             np.savez(als_file, **data)
 
 
-def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool = True) -> ImplicitRecommender:
+def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None, load_to_memory: bool = True) -> ImplicitRecommender:
     log.info("Loading als model")
     data = np.load(als_model_file)
     model = AlternatingLeastSquares(factors=data['model.item_factors'].shape[1])
@@ -121,14 +122,25 @@ def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool 
         return ImplicitRecommender(model, user_labels, item_labels)
 
     elif index_file.endswith('.ann'):
-        from .annoy import ImplicitAnnoyRecommender
+
         import annoy
         log.info("Loading annoy recommendation index")
         max_norm, extra = augment_inner_product_matrix(model.item_factors)
         recommend_index = annoy.AnnoyIndex(extra.shape[1], 'angular')
         recommend_index.load(index_file)  # prefault=load_to_memory does not seem to work
 
-        return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
+        if item_feature_file is None:
+            from .annoy import ImplicitAnnoyRecommender
+            return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
+        else:
+            log.info("Loading item features for annoy recommendation index")
+            item_feature_data = pickle.load(open(item_feature_file, "rb"))
+            tag_tfidf_transformer=item_feature_data['tag_tfidf_transformer']
+            tag_lookup = item_feature_data['tag_lookup']
+            top_sales_work_labels = item_feature_data['top_sales_work_labels']
+            from .annoy_item_features import ImplicitAnnoyItemFeatureRecommender
+            return ImplicitAnnoyItemFeatureRecommender(model, recommend_index, max_norm, user_labels,item_labels,
+                                                       tag_tfidf_transformer, tag_lookup, top_sales_work_labels)
 
     else:
         raise RecommenderException("Unsupported file type" + index_file)
