@@ -23,7 +23,7 @@ class ImplicitAnnoyItemFeatureRecommender(ImplicitAnnoyRecommender):
 
     def __recommend_internal__(self, user_id, user_items, N=10, filter_items=None, recalculate_user=True,
                                filter_already_liked_items=True, search_k=2000000, user_tags=None):
-        if len(user_items) > 0:
+        if user_items is not None and len(user_items) > 0:
             return super(ImplicitAnnoyItemFeatureRecommender, self).__recommend_internal__(user_id, user_items, N,
                                                                                            filter_items,
                                                                                            recalculate_user,

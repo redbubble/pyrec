@@ -50,12 +50,13 @@ class ImplicitRecommender:
         :param user_tags: dict of (tag, counts) of user's engaged works.
         :return: a list of tuples (item_id, weight)
         """
-
-        item_lb = [self.get_item_label(i) for i in item_ids]
-        user_ll = [0] * len(item_ids)
-        confidence = [10] * len(item_ids) if item_weights is None else item_weights
-        user_items = sparse.csr_matrix((confidence, (user_ll, item_lb)))
         user_label = 0
+        user_items = None
+        if item_ids is not None and len(item_ids)>0:
+            item_lb = [self.get_item_label(i) for i in item_ids]
+            user_ll = [0] * len(item_ids)
+            confidence = [10] * len(item_ids) if item_weights is None else item_weights
+            user_items = sparse.csr_matrix((confidence, (user_ll, item_lb)))
 
         recommendations = self.__recommend_internal__(user_label, user_items=user_items, N=number_of_results,
                                                       recalculate_user=True,
