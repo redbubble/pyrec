@@ -106,7 +106,7 @@ class ImplicitRecommender:
             np.savez(als_file, **data)
 
 
-def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None, load_to_memory: bool = True) -> ImplicitRecommender:
+def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None) -> ImplicitRecommender:
     log.info("Loading als model")
     data = np.load(als_model_file)
     model = AlternatingLeastSquares(factors=data['model.item_factors'].shape[1])
@@ -135,12 +135,12 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
         else:
             log.info("Loading item features for annoy recommendation index")
             item_feature_data = pickle.load(open(item_feature_file, "rb"))
-            tag_tfidf_transformer=item_feature_data['tag_tfidf_transformer']
+            tag_tfidf_transformer = item_feature_data['tag_tfidf_transformer']
             tag_lookup = item_feature_data['tag_lookup']
-            top_sales_work_labels = item_feature_data['top_sales_work_labels']
+            item_embedding_weight = item_feature_data['item_embedding_weight']
             from .annoy_item_features import ImplicitAnnoyItemFeatureRecommender
             return ImplicitAnnoyItemFeatureRecommender(model, recommend_index, max_norm, user_labels,item_labels,
-                                                       tag_tfidf_transformer, tag_lookup, top_sales_work_labels)
+                                                       tag_tfidf_transformer, tag_lookup, item_embedding_weight)
 
     else:
         raise RecommenderException("Unsupported file type" + index_file)
