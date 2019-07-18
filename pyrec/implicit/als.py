@@ -35,7 +35,7 @@ class ImplicitRecommender:
         return self.user_labels[user_label]
 
     def __recommend_internal__(self, user_label, user_items, N=10, filter_items=None, recalculate_user=True,
-                               filter_already_liked_items=True, user_tags=None):
+                               filter_already_liked_items=True, **kwargs):
         return self.als_model.recommend(user_label, user_items=user_items, N=N, recalculate_user=True,
                                         filter_already_liked_items=filter_already_liked_items)
 
