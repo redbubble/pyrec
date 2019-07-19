@@ -30,28 +30,17 @@ class ImplicitAnnoyItemFeatureRecommender(ImplicitAnnoyRecommender):
                                                                                            filter_already_liked_items,
                                                                                            search_k)
         else:
-            user = self.__represent_user_by_tags(user_tags)
-
-            # calculate the top N items, removing the users own liked items from
-            # the results
-            item_filter = set(filter_items) if filter_items else set()
-            if filter_already_liked_items:
-                item_filter.update(user_items[user_id].indices)
-            count = N + len(item_filter)
-
+            user = self.__represent_user_by_tags__(user_tags)
+            count=N
             query = np.append(user, 0)
             ids, dist = self.recommend_index.get_nns_by_vector(query, count, include_distances=True,
                                                                search_k=search_k)
 
-            # convert the distances from euclidean to cosine distance,
-            # and then rescale the cosine distance to go back to inner product
-            scaling = self.max_norm * np.linalg.norm(query)
-            dist = scaling * (1 - (np.array(dist) ** 2) / 2)
-            return list(itertools.islice((rec for rec in zip(ids, dist) if rec[0] not in item_filter), N))
+            return list(itertools.islice((rec for rec in zip(ids, dist)), N))
 
-    def __represent_user_by_tags(self, user_tags: dict):
+    def __represent_user_by_tags__(self, user_tags: dict):
         tag_count_vec = np.zeros(self.tag_count)
-        for q, v in user_tags:
+        for q, v in user_tags.items():
             if q in self.tag_lookup:
                 tag_label = self.tag_lookup[q]
                 tag_count_vec[tag_label] += v
