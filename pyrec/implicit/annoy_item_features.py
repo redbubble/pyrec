@@ -22,7 +22,7 @@ class ImplicitAnnoyItemFeatureRecommender(ImplicitAnnoyRecommender):
         self.item_embedding_weight = item_embedding_weight
 
     def __recommend_internal__(self, user_id, user_items, N=10, filter_items=None, recalculate_user=True,
-                               filter_already_liked_items=True, search_k=2000000, user_tags=None):
+                               filter_already_liked_items=True, search_k=2000000, tag_count_vec=None):
         if user_items is not None and user_items.shape[0] > 0:
             return super(ImplicitAnnoyItemFeatureRecommender, self).__recommend_internal__(user_id, user_items, N,
                                                                                            filter_items,
@@ -30,23 +30,17 @@ class ImplicitAnnoyItemFeatureRecommender(ImplicitAnnoyRecommender):
                                                                                            filter_already_liked_items,
                                                                                            search_k)
         else:
-            user = self.__represent_user_by_tags__(user_tags)
-            count=N
+            user = self.__represent_user_by_tags__(tag_count_vec)
+            count = N
             query = np.append(user, 0)
             ids, dist = self.recommend_index.get_nns_by_vector(query, count, include_distances=True,
                                                                search_k=search_k)
 
             return list(itertools.islice((rec for rec in zip(ids, dist)), N))
 
-    def __represent_user_by_tags__(self, user_tags: dict):
-        tag_count_vec = np.zeros(self.tag_count)
-        for q, v in user_tags.items():
-            if q in self.tag_lookup:
-                tag_label = self.tag_lookup[q]
-                tag_count_vec[tag_label] += v
-        if tag_count_vec.sum() == 0:
-            return None
+    def __represent_user_by_tags__(self, tag_count_vec: np.array):
         tag_tfidf_vec = self.tag_tfidf_transformer.transform(tag_count_vec.reshape(1, -1))
-        item_vec = sparse.hstack((sparse.csr_matrix(np.zeros(self.item_count)), tag_tfidf_vec), format='csr', dtype=np.float32)
-        return item_vec*self.item_embedding_weight
+        item_feature_vec = sparse.hstack((sparse.csr_matrix(np.zeros(self.item_count)), tag_tfidf_vec), format='csr',
+                                 dtype=np.float32)
+        return item_feature_vec*self.item_embedding_weight
 
