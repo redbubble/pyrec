@@ -48,7 +48,7 @@ class ImplicitAnnoyRecommender(ImplicitRecommender):
         self.max_norm = max_norm
 
     def __recommend_internal__(self, user_id, user_items, N=10, filter_items=None, recalculate_user=True,
-                               filter_already_liked_items=True, search_k=2000000):
+                               filter_already_liked_items=True, search_k=2000000, **kwargs):
         user = self.als_model._user_factor(user_id, user_items, recalculate_user)
 
         # calculate the top N items, removing the users own liked items from

@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+import pickle
 from implicit.als import AlternatingLeastSquares
 from implicit.approximate_als import augment_inner_product_matrix
 from scipy import sparse
@@ -34,28 +35,33 @@ class ImplicitRecommender:
         return self.user_labels[user_label]
 
     def __recommend_internal__(self, user_label, user_items, N=10, filter_items=None, recalculate_user=True,
-                               filter_already_liked_items=True):
+                               filter_already_liked_items=True, **kwargs):
         return self.als_model.recommend(user_label, user_items=user_items, N=N, recalculate_user=True,
                                         filter_already_liked_items=filter_already_liked_items)
 
-    def recommend(self, item_ids, item_weights=None, number_of_results=50, filter_already_liked_items=True):
+    def recommend(self, item_ids, item_weights=None, number_of_results=50, filter_already_liked_items=True,
+                  tag_count_vec: np.array=None):
         """
         Recommend items from a list of items and weights
         :param item_ids:
         :param item_weights:
         :param number_of_results:
         :param filter_already_liked_items:
+        :param tag_count_vec: counts of tags of user engaged work
         :return: a list of tuples (item_id, weight)
         """
-        item_lb = [self.get_item_label(i) for i in item_ids]
-        user_ll = [0] * len(item_ids)
-        confidence = [10] * len(item_ids) if item_weights is None else item_weights
-        user_items = sparse.csr_matrix((confidence, (user_ll, item_lb)))
         user_label = 0
+        user_items = None
+        if item_ids is not None and len(item_ids)>0:
+            item_lb = [self.get_item_label(i) for i in item_ids]
+            user_ll = [0] * len(item_ids)
+            confidence = [10] * len(item_ids) if item_weights is None else item_weights
+            user_items = sparse.csr_matrix((confidence, (user_ll, item_lb)))
 
         recommendations = self.__recommend_internal__(user_label, user_items=user_items, N=number_of_results,
                                                       recalculate_user=True,
-                                                      filter_already_liked_items=filter_already_liked_items)
+                                                      filter_already_liked_items=filter_already_liked_items,
+                                                      tag_count_vec=tag_count_vec)
 
         recommendations = [(self.get_item_id(x[0]), x[1]) for x in recommendations]
 
@@ -101,7 +107,7 @@ class ImplicitRecommender:
             np.savez(als_file, **data)
 
 
-def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool = True) -> ImplicitRecommender:
+def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None) -> ImplicitRecommender:
     log.info("Loading als model")
     data = np.load(als_model_file)
     model = AlternatingLeastSquares(factors=data['model.item_factors'].shape[1])
@@ -117,14 +123,25 @@ def load_recommender(als_model_file: str, index_file: str, load_to_memory: bool 
         return ImplicitRecommender(model, user_labels, item_labels)
 
     elif index_file.endswith('.ann'):
-        from .annoy import ImplicitAnnoyRecommender
+
         import annoy
         log.info("Loading annoy recommendation index")
         max_norm, extra = augment_inner_product_matrix(model.item_factors)
         recommend_index = annoy.AnnoyIndex(extra.shape[1], 'angular')
         recommend_index.load(index_file)  # prefault=load_to_memory does not seem to work
 
-        return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
+        if item_feature_file is None:
+            from .annoy import ImplicitAnnoyRecommender
+            return ImplicitAnnoyRecommender(model, recommend_index, max_norm, user_labels, item_labels)
+        else:
+            log.info("Loading item features for recommendation")
+            item_feature_data = pickle.load(open(item_feature_file, "rb"))
+            tag_tfidf_transformer = item_feature_data['tag_tfidf_transformer']
+            tag_lookup = item_feature_data['tag_lookup']
+            item_embedding_weight = item_feature_data['item_embedding_weight']
+            from .annoy_item_features import ImplicitAnnoyItemFeatureRecommender
+            return ImplicitAnnoyItemFeatureRecommender(model, recommend_index, max_norm, user_labels,item_labels,
+                                                       tag_tfidf_transformer, tag_lookup, item_embedding_weight)
 
     else:
         raise RecommenderException("Unsupported file type" + index_file)
