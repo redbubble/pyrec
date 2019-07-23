@@ -40,14 +40,14 @@ class ImplicitRecommender:
                                         filter_already_liked_items=filter_already_liked_items)
 
     def recommend(self, item_ids, item_weights=None, number_of_results=50, filter_already_liked_items=True,
-                  user_tags=None):
+                  tag_count_vec: np.array=None):
         """
         Recommend items from a list of items and weights
         :param item_ids:
         :param item_weights:
         :param number_of_results:
         :param filter_already_liked_items:
-        :param user_tags: dict of (tag, counts) of user's engaged works.
+        :param tag_count_vec: counts of tags of user engaged work
         :return: a list of tuples (item_id, weight)
         """
         user_label = 0
@@ -61,7 +61,7 @@ class ImplicitRecommender:
         recommendations = self.__recommend_internal__(user_label, user_items=user_items, N=number_of_results,
                                                       recalculate_user=True,
                                                       filter_already_liked_items=filter_already_liked_items,
-                                                      user_tags=user_tags)
+                                                      tag_count_vec=tag_count_vec)
 
         recommendations = [(self.get_item_id(x[0]), x[1]) for x in recommendations]
 
