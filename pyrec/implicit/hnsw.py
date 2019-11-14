@@ -49,7 +49,7 @@ class ImplicitHNSWRecommender(ImplicitRecommender):
     def save(self, base_name, user_factors=False, compress=False):
         super(ImplicitHNSWRecommender, self).save(base_name=base_name, user_factors=user_factors, compress=compress)
 
-        annoy_file = base_name + '.hnsw'
-        log.info("Saving hnsw index to %s", annoy_file)
+        hnsw_file = base_name + '.hnsw'
+        log.info("Saving hnsw index to %s", hnsw_file)
 
-        self.recommend_index.save(annoy_file)
+        self.recommend_index.save(hnsw_file)
