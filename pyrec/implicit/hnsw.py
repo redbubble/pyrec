@@ -53,3 +53,4 @@ class ImplicitHNSWRecommender(ImplicitRecommender):
         log.info("Saving hnsw index to %s", hnsw_file)
 
         self.recommend_index.save(hnsw_file)
+        return hnsw_file
