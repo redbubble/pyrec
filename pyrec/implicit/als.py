@@ -155,5 +155,6 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
         # This space change gives us 0.96 recall
         l2_recommend_index = hnswlib.Index(space='ip', dim=model.item_factors.shape[1])
         l2_recommend_index.load_index(index_file)
+        l2_recommend_index.set_ef(2000)
     else:
         raise RecommenderException("Unsupported file type" + index_file)
