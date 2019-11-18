@@ -6,6 +6,8 @@ from implicit.als import AlternatingLeastSquares
 from implicit.approximate_als import augment_inner_product_matrix
 from scipy import sparse
 
+from pyrec.implicit.hnsw import ImplicitHNSWRecommender
+
 log = logging.getLogger("rb.recommendation")
 
 
@@ -156,5 +158,6 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
         l2_recommend_index = hnswlib.Index(space='ip', dim=model.item_factors.shape[1])
         l2_recommend_index.load_index(index_file)
         l2_recommend_index.set_ef(2000)
+        return ImplicitHNSWRecommender(model, l2_recommend_index,user_labels, item_labels)
     else:
         raise RecommenderException("Unsupported file type" + index_file)
