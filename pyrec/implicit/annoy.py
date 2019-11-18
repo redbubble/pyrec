@@ -75,3 +75,4 @@ class ImplicitAnnoyRecommender(ImplicitRecommender):
         log.info("Saving annoy index to %s", annoy_file)
 
         self.recommend_index.save(annoy_file)
+        return annoy_file

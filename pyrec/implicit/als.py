@@ -85,7 +85,14 @@ class ImplicitRecommender:
                 **kwargs
             )
             return recommender
-
+        elif index_type == 'hnsw':
+            from .hnsw import ImplicitHNSWRecommender
+            recommender = ImplicitHNSWRecommender.build_hnsw_recommender(
+                als_model=self.als_model,
+                user_labels=self.user_labels, item_labels=self.item_labels,
+                **kwargs
+            )
+            return recommender
         elif index_type is None:
             self.recommender = self.model
         else:
@@ -107,7 +114,7 @@ class ImplicitRecommender:
             np.savez(als_file, **data)
 
 
-def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None) -> ImplicitRecommender:
+def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None, **kwargs) -> ImplicitRecommender:
     log.info("Loading als model")
     data = np.load(als_model_file)
     model = AlternatingLeastSquares(factors=data['model.item_factors'].shape[1])
@@ -123,7 +130,6 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
         return ImplicitRecommender(model, user_labels, item_labels)
 
     elif index_file.endswith('.ann'):
-
         import annoy
         log.info("Loading annoy recommendation index")
         max_norm, extra = augment_inner_product_matrix(model.item_factors)
@@ -142,6 +148,15 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
             from .annoy_item_features import ImplicitAnnoyItemFeatureRecommender
             return ImplicitAnnoyItemFeatureRecommender(model, recommend_index, max_norm, user_labels,item_labels,
                                                        tag_tfidf_transformer, tag_lookup, item_embedding_weight)
-
+    elif index_file.endswith('.hnsw'):
+        import hnswlib
+        from .hnsw import ImplicitHNSWRecommender
+        log.info("Loading hnsw recommendation index")
+        # we build the index in l2 space and load it in inner product space on purpose.
+        # This space change gives us 0.96 recall
+        l2_recommend_index = hnswlib.Index(space='ip', dim=model.item_factors.shape[1])
+        l2_recommend_index.load_index(index_file)
+        l2_recommend_index.set_ef(kwargs.get('ef', 2000))
+        return ImplicitHNSWRecommender(model, l2_recommend_index,user_labels, item_labels)
     else:
         raise RecommenderException("Unsupported file type" + index_file)
