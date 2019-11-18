@@ -116,7 +116,7 @@ class ImplicitRecommender:
 
 def load_recommender(als_model_file: str, index_file: str, item_feature_file: str = None, **kwargs) -> ImplicitRecommender:
     log.info("Loading als model")
-    data = np.load(als_model_file)
+    data = np.load(als_model_file, allow_pickle=True)
     model = AlternatingLeastSquares(factors=data['model.item_factors'].shape[1])
     model.item_factors = data['model.item_factors']
     model.YtY  # This will initialize the _YtY instance variable which is used directly in internal methods
