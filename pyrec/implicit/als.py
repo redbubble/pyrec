@@ -6,8 +6,6 @@ from implicit.als import AlternatingLeastSquares
 from implicit.approximate_als import augment_inner_product_matrix
 from scipy import sparse
 
-from pyrec.implicit.hnsw import ImplicitHNSWRecommender
-
 log = logging.getLogger("rb.recommendation")
 
 
@@ -152,6 +150,7 @@ def load_recommender(als_model_file: str, index_file: str, item_feature_file: st
                                                        tag_tfidf_transformer, tag_lookup, item_embedding_weight)
     elif index_file.endswith('.hnsw'):
         import hnswlib
+        from .hnsw import ImplicitHNSWRecommender
         log.info("Loading hnsw recommendation index")
         # we build the index in l2 space and load it in inner product space on purpose.
         # This space change gives us 0.96 recall

@@ -42,7 +42,7 @@ class ImplicitHNSWRecommender(ImplicitRecommender):
             item_filter.update(user_items[user_id].indices)
         count = N + len(item_filter)
 
-        ids, dist = self.recommend_index.index.knn_query(user, k=count)
+        ids, dist = self.recommend_index.knn_query(user, k=count)
         ids, dist = ids[0], dist[0]
         return list(itertools.islice((rec for rec in zip(ids, dist) if rec[0] not in item_filter), N))
 
