@@ -4,7 +4,7 @@ import logging
 import annoy
 import numpy as np
 from implicit.als import AlternatingLeastSquares
-from implicit.approximate_als import augment_inner_product_matrix
+from implicit.utils import augment_inner_product_matrix
 
 from pyrec import ImplicitRecommender
 
