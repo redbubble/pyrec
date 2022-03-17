@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import pickle
 from implicit.als import AlternatingLeastSquares
-from implicit.approximate_als import augment_inner_product_matrix
+from implicit.utils import augment_inner_product_matrix
 from scipy import sparse
 
 log = logging.getLogger("rb.recommendation")
