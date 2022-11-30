@@ -11,7 +11,7 @@ setup(name='pyrec',
       install_requires=[
           'numpy',
           'scipy',
-          'implicit',
+          'implicit>=0.5.0',
           'annoy',
       ],
       zip_safe=False,
