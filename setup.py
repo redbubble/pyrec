@@ -11,9 +11,8 @@ setup(name='pyrec',
       install_requires=[
           'numpy',
           'scipy',
-          #     'implicit',
-          #     'annoy',
-          #     'nmslib',
+          'implicit',
+          'annoy',
       ],
       zip_safe=False,
       )
