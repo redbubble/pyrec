@@ -26,7 +26,7 @@ class ImplicitRecommender:
         return self.item_labels_idx.get(item_id)
 
     def get_item_id(self, item_label):
-        return self.item_labels[item_label]
+        return item_label if isinstance(item_label, str) else self.item_labels[item_label]
 
     def get_user_label(self, user_id):
         return self.user_labels_idx.get(user_id)
